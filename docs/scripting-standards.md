@@ -109,7 +109,8 @@ def main(
 
     # Lists (whitespace/newline separated by default)
     formats: list[str] | None = None,
-    man_paths: Annotated[list[Path] | None, Parameter(env_var="INPUT_MAN_PATHS")] = None,
+    man_paths: Annotated[list[Path] | None, Parameter(env_var="INPUT_MAN_PATHS")]
+    = None,
     deb_depends: list[str] | None = None,
     rpm_depends: list[str] | None = None,
 ):
@@ -159,7 +160,8 @@ Guidance:
 - Per‑parameter environment names can be pinned for backwards compatibility:
 
   ```python
-  config_out: Annotated[Optional[Path], Parameter(env_var="INPUT_CONFIG_PATH")] = None
+    config_out: Annotated[Optional[Path], Parameter(env_var="INPUT_CONFIG_PATH")]
+    = None
   ```
 
 ## plumbum: command calling and pipelines
@@ -257,7 +259,9 @@ f.write_text("1.2.3\n", encoding="utf-8")
 version = f.read_text(encoding="utf-8").strip()
 
 # Atomic write pattern (tmp → replace)
-with tempfile.NamedTemporaryFile("w", delete=False, dir=f.parent, encoding="utf-8") as tmp:
+with tempfile.NamedTemporaryFile(
+    "w", delete=False, dir=f.parent, encoding="utf-8"
+) as tmp:
     tmp.write("new-contents\n")
     tmp_path = Path(tmp.name)
 

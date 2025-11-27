@@ -1,4 +1,4 @@
-# Python exception design, raising, handling, and logging — Ruff TRY/BLE/EM/LOG, N818, PERF203
+# Python exception design, raising, handling, and logging
 
 This guide distils the intent behind Ruff’s Tryceratops (TRY), Blind Except
 (BLE), flake8‑errmsg (EM), flake8‑logging (LOG), pep8‑naming N818, and Perflint
@@ -56,7 +56,7 @@ When transforming low‑level failures into domain errors, `raise … from …`
 retains traceback lineage (TRY201). Avoid discarding causes in contexts
 expected to preserve them (TRY200).
 
-## 3) Catch narrowly; avoid blind handlers (BLE001), and use `else` for the happy path (TRY300)
+## 3) Catch narrowly; avoid blind handlers; use `else` for happy paths
 
 ### Avoid blind `except`
 
@@ -93,7 +93,7 @@ def reciprocal(n: float) -> float:
 `else` emphasises the happy path and avoids odd control‑flow within `try`
 blocks.
 
-## 4) Message construction for raises (EM101/EM102) and logging practice (LOG004/LOG007/LOG009/LOG014/LOG015, TRY401)
+## 4) Build messages once and log with parameters
 
 ### Exception messages: construct once, pass once
 
@@ -133,7 +133,8 @@ logger.error("Task %s crashed", task_id)
 try:
     risky()
 except ValueError:
-    logger.exception("Risky operation failed")  # ✅ includes traceback; no %s with exc
+    logger.exception("Risky operation failed")
+    # ✅ includes traceback; no %s with exc
 ```
 
 `logger.exception` records the active exception and traceback; appending the
