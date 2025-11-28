@@ -13,6 +13,7 @@ from syspath_hack import (
     add_project_root,
     add_to_syspath,
     find_project_root,
+    prepend_to_syspath,
     remove_from_syspath,
 )
 
@@ -98,3 +99,33 @@ def test_add_project_root_adds_directory_to_sys_path(
 
         resolved = str(project_root.resolve())
         assert sys.path == [resolved]
+
+
+def test_prepend_to_syspath_inserts_resolved_path(tmp_path: Path) -> None:
+    """It prepends the resolved path and avoids duplicates."""
+    target = tmp_path / "package"
+    target.mkdir()
+    starting_entries = ["/already-present", "/other"]
+
+    with mock.patch.object(sys, "path", starting_entries.copy()):
+        prepend_to_syspath(target)
+
+        resolved = str(target.resolve())
+        assert sys.path[0] == resolved
+        assert sys.path[1:] == starting_entries
+
+        prepend_to_syspath(target)
+        assert sys.path.count(resolved) == 1
+
+
+def test_prepend_to_syspath_moves_existing_entry_to_front(tmp_path: Path) -> None:
+    """It moves an existing equivalent entry to the front of sys.path."""
+    target = tmp_path / "package"
+    target.mkdir()
+    resolved = str(target.resolve())
+
+    with mock.patch.object(sys, "path", ["/other", resolved, "/later"]):
+        prepend_to_syspath(target)
+
+        assert sys.path[0] == resolved
+        assert sys.path[1:] == ["/other", "/later"]

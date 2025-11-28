@@ -52,6 +52,20 @@ def add_to_syspath(pth: Pathish) -> None:
     sys.path.append(str(target))
 
 
+def prepend_to_syspath(pth: Pathish) -> None:
+    """Place the resolved path at the front of sys.path exactly once."""
+    target = _to_resolved_path(pth)
+
+    indexes_to_remove = [
+        index for index, entry in _iter_resolved_sys_path() if entry == target
+    ]
+
+    for index in reversed(indexes_to_remove):
+        del sys.path[index]
+
+    sys.path.insert(0, str(target))
+
+
 def remove_from_syspath(pth: Pathish) -> None:
     """Remove all occurrences of the resolved path from sys.path."""
     target = _to_resolved_path(pth)
@@ -101,8 +115,3 @@ def add_project_root(sigil: str = "pyproject.toml") -> None:
     """Locate the project root and place it on sys.path."""
     project_root = find_project_root(sigil)
     add_to_syspath(project_root)
-
-
-def hello() -> str:
-    """Return a friendly greeting from Python."""
-    return "hello from Python"
