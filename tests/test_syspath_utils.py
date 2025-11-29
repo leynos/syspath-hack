@@ -10,11 +10,18 @@ import pytest
 
 from syspath_hack import (
     ProjectRootNotFoundError,
+    SysPathMode,
     add_project_root,
     add_to_syspath,
+    append_action_root,
+    clear_from_syspath,
+    ensure_module_dir,
     find_project_root,
+    prepend_action_root,
+    prepend_project_root,
     prepend_to_syspath,
     remove_from_syspath,
+    temp_syspath,
 )
 
 if typ.TYPE_CHECKING:
@@ -101,6 +108,57 @@ def test_add_project_root_adds_directory_to_sys_path(
         assert sys.path == [resolved]
 
 
+def test_add_project_root_includes_existing_extra_paths(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It appends the project root followed by existing extra paths."""
+    project_root = tmp_path / "workspace"
+    project_root.mkdir()
+    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+
+    extra = project_root / "src" / "pkg"
+    extra.mkdir(parents=True)
+    missing = project_root / "missing"
+
+    tests_dir = project_root / "tests"
+    tests_dir.mkdir()
+    monkeypatch.chdir(tests_dir)
+
+    with mock.patch.object(sys, "path", []):
+        add_project_root(extra_paths=["src/pkg", missing])
+
+        assert sys.path == [
+            str(project_root.resolve()),
+            str(extra.resolve()),
+        ]
+
+
+def test_append_action_root_adds_default_extras(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It appends action root and its scripts/src directories when present."""
+    project_root = tmp_path / "action-repo"
+    project_root.mkdir()
+    (project_root / "action.yml").write_text("name: demo\n")
+    scripts = project_root / "scripts"
+    scripts.mkdir()
+    src = project_root / "src"
+    src.mkdir()
+
+    runner_dir = project_root / "runner"
+    runner_dir.mkdir()
+    monkeypatch.chdir(runner_dir)
+
+    with mock.patch.object(sys, "path", []):
+        append_action_root()
+
+        assert sys.path == [
+            str(project_root.resolve()),
+            str(scripts.resolve()),
+            str(src.resolve()),
+        ]
+
+
 def test_prepend_to_syspath_inserts_resolved_path(tmp_path: Path) -> None:
     """It prepends the resolved path and avoids duplicates."""
     target = tmp_path / "package"
@@ -129,3 +187,159 @@ def test_prepend_to_syspath_moves_existing_entry_to_front(tmp_path: Path) -> Non
 
         assert sys.path[0] == resolved
         assert sys.path[1:] == ["/other", "/later"]
+
+
+def test_prepend_project_root_places_root_first(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It prepends the located project root so it wins import precedence."""
+    project_root = tmp_path / "workspace"
+    project_root.mkdir()
+    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+
+    nested = project_root / "pkg"
+    nested.mkdir()
+    monkeypatch.chdir(nested)
+
+    existing = ["/already-present"]
+
+    with mock.patch.object(sys, "path", existing.copy()):
+        prepend_project_root()
+
+        resolved = str(project_root.resolve())
+        assert sys.path[0] == resolved
+        assert sys.path[1:] == existing
+
+
+def test_prepend_project_root_adds_extras_after_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It keeps the project root first and prepends extra paths afterwards."""
+    project_root = tmp_path / "workspace"
+    project_root.mkdir()
+    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+
+    extra = project_root / "src" / "pkg"
+    extra.mkdir(parents=True)
+
+    monkeypatch.chdir(project_root)
+
+    with mock.patch.object(sys, "path", ["/existing"]):
+        prepend_project_root(extra_paths=["src/pkg", "does-not-exist"])
+
+        assert sys.path[0] == str(project_root.resolve())
+        assert sys.path[1] == str(extra.resolve())
+        assert sys.path[2:] == ["/existing"]
+
+
+def test_prepend_action_root_adds_defaults_with_precedence(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It keeps action root first then its scripts/src directories."""
+    project_root = tmp_path / "action-repo"
+    project_root.mkdir()
+    (project_root / "action.yml").write_text("name: demo\n")
+    scripts = project_root / "scripts"
+    scripts.mkdir()
+    src = project_root / "src"
+    src.mkdir()
+
+    monkeypatch.chdir(project_root)
+
+    with mock.patch.object(sys, "path", ["/existing"]):
+        prepend_action_root()
+
+        assert sys.path[:3] == [
+            str(project_root.resolve()),
+            str(scripts.resolve()),
+            str(src.resolve()),
+        ]
+        assert sys.path[3:] == ["/existing"]
+
+
+def test_temp_syspath_prepend_restores_original_list(tmp_path: Path) -> None:
+    """It prepends during the context and restores the previous sys.path."""
+    target = tmp_path / "package"
+    target.mkdir()
+
+    starting = ["/already-present", "/other"]
+
+    with mock.patch.object(sys, "path", starting.copy()):
+        with temp_syspath([target], mode=SysPathMode.PREPEND):
+            resolved = str(target.resolve())
+            assert sys.path[0] == resolved
+            assert sys.path[1:] == starting
+
+        assert sys.path == starting
+
+
+def test_temp_syspath_append_adds_once(tmp_path: Path) -> None:
+    """It appends when requested and deduplicates inputs."""
+    target = tmp_path / "package"
+    target.mkdir()
+
+    with mock.patch.object(sys, "path", ["/existing"]):
+        with temp_syspath([target, str(target)], mode=SysPathMode.APPEND):
+            resolved = str(target.resolve())
+            assert sys.path[-1] == resolved
+            assert sys.path.count(resolved) == 1
+
+        assert sys.path == ["/existing"]
+
+
+def test_ensure_module_dir_defaults_to_prepend(tmp_path: Path) -> None:
+    """It adds the module directory at the front of sys.path."""
+    module = tmp_path / "pkg" / "module.py"
+    module.parent.mkdir()
+    module.write_text("print('demo')\n")
+
+    starting = ["/other"]
+
+    with mock.patch.object(sys, "path", starting.copy()):
+        module_dir = ensure_module_dir(module)
+
+        resolved = str(module.parent.resolve())
+        assert module_dir == module.parent.resolve()
+        assert sys.path[0] == resolved
+        assert sys.path[1:] == starting
+
+
+def test_ensure_module_dir_supports_append_mode(tmp_path: Path) -> None:
+    """It appends the module directory when requested."""
+    module = tmp_path / "pkg" / "module.py"
+    module.parent.mkdir()
+    module.touch()
+
+    with mock.patch.object(sys, "path", ["/existing"]):
+        ensure_module_dir(module, mode=SysPathMode.APPEND)
+
+        resolved = str(module.parent.resolve())
+        assert sys.path[-1] == resolved
+        assert sys.path[0] == "/existing"
+
+
+def test_clear_from_syspath_removes_multiple_entries(tmp_path: Path) -> None:
+    """It removes every occurrence of multiple paths."""
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    first.mkdir()
+    second.mkdir()
+
+    first_resolved = str(first.resolve())
+    second_resolved = str(second.resolve())
+
+    with mock.patch.object(
+        sys, "path", [first_resolved, second_resolved, "/keep", first_resolved]
+    ):
+        clear_from_syspath([first, second])
+
+        assert sys.path == ["/keep"]
+
+
+def test_syspath_mode_allows_combining_flags() -> None:
+    """It supports combining append and prepend preferences."""
+    both = SysPathMode.APPEND | SysPathMode.PREPEND
+
+    assert SysPathMode.APPEND in both
+    assert SysPathMode.PREPEND in both
+    assert list(both) == [SysPathMode.APPEND, SysPathMode.PREPEND]

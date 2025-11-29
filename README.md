@@ -23,24 +23,37 @@ from syspath_hack import add_project_root
 add_project_root()  # finds the nearest pyproject.toml above the cwd
 ```
 
-## Working with temporary paths
+Prefer `prepend_project_root()` when you need imports to prioritise the working
+tree over installed copies of the package.
 
-When you need to add a directory for a short time, pair `add_to_syspath` with
-`remove_from_syspath` to leave `sys.path` tidy:
+Both project-root helpers accept `extra_paths` for common subdirectories. For
+example, to prioritise the project and its `src` tree:
 
 ```python
-from pathlib import Path
+from syspath_hack import prepend_project_root
 
-from syspath_hack import add_to_syspath, remove_from_syspath
-
-plugins_dir = Path(__file__).parent / "plugins"
-add_to_syspath(plugins_dir)
-
-try:
-    import plugin_loader  # noqa: F401
-finally:
-    remove_from_syspath(plugins_dir)
+prepend_project_root(extra_paths=["src"])
 ```
+
+Working in a GitHub Action? Use `append_action_root()` or
+`prepend_action_root()` to locate `action.yml` and automatically include
+`scripts` and `src` when they exist.
+
+## Working with temporary paths
+
+When you need to add a directory only briefly, use `temp_syspath` to mutate
+`sys.path` inside a context manager and restore it afterwards:
+
+```python
+from syspath_hack import SysPathMode, temp_syspath
+
+with temp_syspath(["plugins"], mode=SysPathMode.PREPEND):
+    import plugin_loader  # noqa: F401
+```
+
+For module-local imports, `ensure_module_dir(__file__)` adds the current file's
+directory to `sys.path` in one call, replacing the boilerplate
+`Path(__file__).resolve().parent` pattern.
 
 ## Custom project markers
 
