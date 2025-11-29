@@ -10,7 +10,7 @@ UV_ENV = UV_CACHE_DIR=.uv-cache UV_TOOL_DIR=.uv-tools
 
 .DEFAULT_GOAL := all
 
-all: build check-fmt test typecheck
+all: build check-fmt lint typecheck test
 
 .venv: pyproject.toml
 	$(UV_ENV) uv venv --clear
