@@ -15,6 +15,7 @@ Repository = "https://github.com/leynos/syspath-hack"
 [dependency-groups]
 dev = [
     "pytest",
+    "pytest-bdd",
     "pytest-xdist",
     "ruff",
     "pyright",
@@ -105,6 +106,7 @@ max-args = 4
 [tool.pytest.ini_options]
 # Tests automatically killed after seconds elapsed
 timeout = 30
+bdd_features_base_dir = "tests/features"
 
 [tool.uv]
 package = true

@@ -38,6 +38,8 @@ class SysPathMode(StrEnum):
 
     def __ror__(self, other: ModeInput) -> _SysPathModes:
         """Combine when the enum appears on the right-hand side of |."""
+        if isinstance(other, SysPathMode):
+            return _SysPathModes(other, self)
         if isinstance(other, _SysPathModes):
             return _SysPathModes(*other, self)
         if isinstance(other, typ.Iterable):
@@ -181,8 +183,12 @@ def prepend_to_syspath(pth: Pathish) -> None:
     """Place the resolved path at the front of sys.path exactly once."""
     target = _to_resolved_path(pth)
 
+    # Keep the blank sentinel entry ("") that tracks the live CWD even when it
+    # resolves to the same directory as the target.
     indexes_to_remove = [
-        index for index, entry in _iter_resolved_sys_path() if entry == target
+        index
+        for index, entry in _iter_resolved_sys_path()
+        if entry == target and sys.path[index] != ""
     ]
 
     for index in reversed(indexes_to_remove):

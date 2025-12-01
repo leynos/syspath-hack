@@ -189,6 +189,20 @@ def test_prepend_to_syspath_moves_existing_entry_to_front(tmp_path: Path) -> Non
         assert sys.path[1:] == ["/other", "/later"]
 
 
+def test_prepend_to_syspath_preserves_blank_cwd_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """It keeps the CWD sentinel when prepending that same directory."""
+    monkeypatch.chdir(tmp_path)
+    starting_entries = ["", "/other"]
+
+    with mock.patch.object(sys, "path", starting_entries.copy()):
+        prepend_to_syspath(tmp_path)
+
+        resolved = str(tmp_path.resolve())
+        assert sys.path == [resolved, "", "/other"]
+
+
 def test_prepend_project_root_places_root_first(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
