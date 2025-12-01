@@ -2,7 +2,7 @@
 
 The `syspath_hack` package provides helpers for managing `sys.path` entries and
 for discovering the project root marker that contains `pyproject.toml` (or any
-custom marker). Import the helpers you need from the package root:
+custom marker). Import the required helpers from the package root:
 
 ```python
 from syspath_hack import (
@@ -22,10 +22,10 @@ from syspath_hack import (
 ## Controlling `sys.path`
 
 - `add_to_syspath(path)` resolves the provided path (accepting `pathlib.Path`
-  objects or strings) and appends it to `sys.path` only if the normalised path
+  objects or strings) and appends it to `sys.path` only if the normalized path
   is missing.
-- `prepend_to_syspath(path)` performs the same normalisation but ensures the
-  path is the first entry in `sys.path`, removing any existing duplicates so
+- `prepend_to_syspath(path)` performs the same normalization but ensures the
+  path is the first entry in `sys.path`, removing any existing duplicates, so
   imports favour that location. When the list already begins with `""` (the
   interpreter's sentinel meaning "current working directory"), the helper
   preserves that entry even if it resolves to the same directory as the target.
@@ -36,11 +36,11 @@ from syspath_hack import (
 
 These helpers work with relative paths, paths containing `~`, and existing
 entries in `sys.path` that use different but equivalent representations. The
-normalisation prevents duplicates when the same location is spelled different
+normalization prevents duplicates when the same location is spelled different
 ways.
 
-When you need to add paths only temporarily, use `temp_syspath()` as a context
-manager. It normalises and deduplicates the supplied paths, mutates `sys.path`
+To add paths only temporarily, use `temp_syspath()` as a context manager. It
+normalizes and deduplicates the supplied paths, mutates `sys.path`
 according to the requested `mode`, and restores the original `sys.path` list
 (not just its contents) on exit.
 
@@ -85,5 +85,5 @@ can resolve modules relative to the project root immediately afterwards.
 - `SysPathMode.PREPEND` places paths at the start of `sys.path`.
 - `SysPathMode.APPEND` places them at the end.
 
-Pass either value, or combine them with `|` when you want a helper to perform
-both operations in order, typically to guarantee the path ends up first.
+Pass either value, or combine them with `|` to perform both operations in
+order, typically to guarantee the path ends up first.
