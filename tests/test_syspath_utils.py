@@ -73,6 +73,26 @@ def test_find_project_root_returns_first_match(
     assert result == project_root.resolve()
 
 
+def test_find_project_root_uses_start_parameter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It prefers the provided start directory over the CWD."""
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+
+    start_dir = project_root / "src" / "demo"
+    start_dir.mkdir(parents=True)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    result = find_project_root(start=start_dir)
+
+    assert result == project_root.resolve()
+
+
 def test_find_project_root_raises_when_reaching_home(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -103,6 +123,28 @@ def test_add_project_root_adds_directory_to_sys_path(
 
     with mock.patch.object(sys, "path", []):
         add_project_root()
+
+        resolved = str(project_root.resolve())
+        assert sys.path == [resolved]
+
+
+def test_add_project_root_uses_start_parameter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It searches from the provided start directory."""
+    project_root = tmp_path / "workspace"
+    project_root.mkdir()
+    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+
+    start_dir = project_root / "src" / "pkg"
+    start_dir.mkdir(parents=True)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    with mock.patch.object(sys, "path", []):
+        add_project_root(start=start_dir)
 
         resolved = str(project_root.resolve())
         assert sys.path == [resolved]

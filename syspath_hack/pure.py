@@ -208,17 +208,23 @@ def remove_from_syspath(pth: Pathish) -> None:
         del sys.path[index]
 
 
-def find_project_root(sigil: str = "pyproject.toml") -> Path:
+def find_project_root(
+    sigil: str | None = None, *, start: Pathish | None = None
+) -> Path:
     """Find the nearest ancestor containing the marker file.
 
     The search stops before returning the user's home directory or any higher
     directory. A dedicated runtime error communicates when no marker is found.
+    Use start to override the current working directory.
     """
+    if sigil is None:
+        sigil = "pyproject.toml"
     if not sigil:
         msg = "sigil must be a non-empty string"
         raise ValueError(msg)
 
-    current = Path.cwd().resolve()
+    current = Path.cwd().resolve() if start is None else _to_resolved_path(start)
+    origin = current
     home = Path.home().resolve()
 
     while True:
@@ -236,7 +242,7 @@ def find_project_root(sigil: str = "pyproject.toml") -> Path:
         current = parent
 
     msg = (
-        f"Unable to locate {sigil!r} when ascending from {Path.cwd()} "
+        f"Unable to locate {sigil!r} when ascending from {origin} "
         f"before reaching the home directory {home}"
     )
     raise ProjectRootNotFoundError(msg)
@@ -256,12 +262,16 @@ def _iter_existing_extra_paths(
 
 
 def add_project_root(
-    sigil: str = "pyproject.toml",
+    sigil: str | None = None,
     *,
     extra_paths: typ.Iterable[Pathish] | None = None,
+    start: Pathish | None = None,
 ) -> None:
-    """Locate the project root and place it, and optional extras, on sys.path."""
-    project_root = find_project_root(sigil)
+    """Locate the project root and place it, and optional extras, on sys.path.
+
+    Provide start to search from a specific directory instead of the CWD.
+    """
+    project_root = find_project_root(sigil, start=start)
     add_to_syspath(project_root)
 
     if extra_paths is None:
@@ -272,12 +282,16 @@ def add_project_root(
 
 
 def prepend_project_root(
-    sigil: str = "pyproject.toml",
+    sigil: str | None = None,
     *,
     extra_paths: typ.Iterable[Pathish] | None = None,
+    start: Pathish | None = None,
 ) -> None:
-    """Locate the project root and move it, and optional extras, to sys.path."""
-    project_root = find_project_root(sigil)
+    """Locate the project root and move it, and optional extras, to sys.path.
+
+    Provide start to search from a specific directory instead of the CWD.
+    """
+    project_root = find_project_root(sigil, start=start)
 
     extras: tuple[Path, ...] = ()
     if extra_paths is not None:
@@ -289,14 +303,20 @@ def prepend_project_root(
     prepend_to_syspath(project_root)
 
 
-def append_action_root() -> None:
-    """Append the GitHub Action root and common subdirs to sys.path."""
-    add_project_root("action.yml", extra_paths=("scripts", "src"))
+def append_action_root(*, start: Pathish | None = None) -> None:
+    """Append the GitHub Action root and common subdirs to sys.path.
+
+    Provide start to search from a specific directory instead of the CWD.
+    """
+    add_project_root("action.yml", extra_paths=("scripts", "src"), start=start)
 
 
-def prepend_action_root() -> None:
-    """Prepend the GitHub Action root and common subdirs to sys.path."""
-    prepend_project_root("action.yml", extra_paths=("scripts", "src"))
+def prepend_action_root(*, start: Pathish | None = None) -> None:
+    """Prepend the GitHub Action root and common subdirs to sys.path.
+
+    Provide start to search from a specific directory instead of the CWD.
+    """
+    prepend_project_root("action.yml", extra_paths=("scripts", "src"), start=start)
 
 
 @contextlib.contextmanager
