@@ -9,7 +9,7 @@ import typing as typ
 import pytest
 from pytest_bdd import given, scenario, then, when
 
-from syspath_hack import add_project_root, find_project_root
+from syspath_hack import DEFAULT_SIGIL, add_project_root, find_project_root
 
 if typ.TYPE_CHECKING:
     from pathlib import Path
@@ -52,7 +52,7 @@ def a_project_root_with_marker(tmp_path: Path, root_state: RootState) -> None:
     """Create a project root that contains the marker file."""
     project_root = tmp_path / "workspace"
     project_root.mkdir()
-    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
     root_state.project_root = project_root
 
 
@@ -76,9 +76,9 @@ def i_am_in_a_different_working_directory(
 
 
 @given("sys.path is empty")
-def sys_path_is_empty() -> None:
+def sys_path_is_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure sys.path starts empty for this scenario."""
-    sys.path[:] = []
+    monkeypatch.setattr(sys, "path", [])
 
 
 @when("I search for the project root from the explicit start directory")

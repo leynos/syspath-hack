@@ -10,6 +10,7 @@ from pathlib import Path
 
 Pathish = Path | str
 ModeInput = typ.Union["SysPathMode", "_SysPathModes", typ.Iterable["SysPathMode"]]
+DEFAULT_SIGIL = "pyproject.toml"
 
 
 class StrEnum(str, enum.Enum):
@@ -218,7 +219,7 @@ def find_project_root(
     Use start to override the current working directory.
     """
     if sigil is None:
-        sigil = "pyproject.toml"
+        sigil = DEFAULT_SIGIL
     if not sigil:
         msg = "sigil must be a non-empty string"
         raise ValueError(msg)

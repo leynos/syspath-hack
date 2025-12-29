@@ -81,8 +81,8 @@ add_project_root()  # Ensures the directory with pyproject.toml is on sys.path.
 
 The helper returns `None`; it mutates `sys.path` in place so import statements
 can resolve modules relative to the project root immediately afterwards. Use
-the optional `start` parameter when you want to search from somewhere other
-than the current working directory.
+the optional `start` parameter to search from a directory other than the
+current working directory.
 
 ## Choosing how paths are added
 
