@@ -9,6 +9,7 @@ from unittest import mock
 import pytest
 
 from syspath_hack import (
+    DEFAULT_SIGIL,
     ProjectRootNotFoundError,
     SysPathMode,
     add_project_root,
@@ -62,7 +63,7 @@ def test_find_project_root_returns_first_match(
     """It returns the first ancestor containing the marker file."""
     project_root = tmp_path / "project"
     project_root.mkdir()
-    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
 
     nested = project_root / "src" / "demo"
     nested.mkdir(parents=True)
@@ -71,6 +72,47 @@ def test_find_project_root_returns_first_match(
     result = find_project_root()
 
     assert result == project_root.resolve()
+
+
+def test_find_project_root_uses_start_parameter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It prefers the provided start directory over the CWD."""
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
+
+    start_dir = project_root / "src" / "demo"
+    start_dir.mkdir(parents=True)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    result = find_project_root(start=start_dir)
+
+    assert result == project_root.resolve()
+
+
+def test_find_project_root_start_uses_origin_in_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It reports the explicit start directory in error messages."""
+    fake_home = tmp_path / "home"
+    start_dir = fake_home / "workspace" / "repo"
+    start_dir.mkdir(parents=True)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    with (
+        mock.patch("pathlib.Path.home", return_value=fake_home),
+        pytest.raises(ProjectRootNotFoundError) as excinfo,
+    ):
+        find_project_root("missing.sigil", start=start_dir)
+
+    assert str(start_dir.resolve()) in str(excinfo.value)
 
 
 def test_find_project_root_raises_when_reaching_home(
@@ -95,7 +137,7 @@ def test_add_project_root_adds_directory_to_sys_path(
     """It adds the located project root to sys.path."""
     project_root = tmp_path / "workspace"
     project_root.mkdir()
-    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
 
     nested = project_root / "src"
     nested.mkdir()
@@ -108,13 +150,57 @@ def test_add_project_root_adds_directory_to_sys_path(
         assert sys.path == [resolved]
 
 
+def test_add_project_root_uses_start_parameter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It searches from the provided start directory."""
+    project_root = tmp_path / "workspace"
+    project_root.mkdir()
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
+
+    start_dir = project_root / "src" / "pkg"
+    start_dir.mkdir(parents=True)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    with mock.patch.object(sys, "path", []):
+        add_project_root(start=start_dir)
+
+        resolved = str(project_root.resolve())
+        assert sys.path == [resolved]
+
+
+def test_prepend_project_root_uses_start_parameter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """It prepends the project root found from the provided start directory."""
+    project_root = tmp_path / "workspace"
+    project_root.mkdir()
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
+
+    start_dir = project_root / "src" / "pkg"
+    start_dir.mkdir(parents=True)
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    with mock.patch.object(sys, "path", ["sentinel"]):
+        prepend_project_root(start=start_dir)
+
+        resolved = str(project_root.resolve())
+        assert sys.path == [resolved, "sentinel"]
+
+
 def test_add_project_root_includes_existing_extra_paths(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """It appends the project root followed by existing extra paths."""
     project_root = tmp_path / "workspace"
     project_root.mkdir()
-    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
 
     extra = project_root / "src" / "pkg"
     extra.mkdir(parents=True)
@@ -209,7 +295,7 @@ def test_prepend_project_root_places_root_first(
     """It prepends the located project root so it wins import precedence."""
     project_root = tmp_path / "workspace"
     project_root.mkdir()
-    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
 
     nested = project_root / "pkg"
     nested.mkdir()
@@ -231,7 +317,7 @@ def test_prepend_project_root_adds_extras_after_root(
     """It keeps the project root first and prepends extra paths afterwards."""
     project_root = tmp_path / "workspace"
     project_root.mkdir()
-    (project_root / "pyproject.toml").write_text("[project]\nname = 'demo'\n")
+    (project_root / DEFAULT_SIGIL).write_text("[project]\nname = 'demo'\n")
 
     extra = project_root / "src" / "pkg"
     extra.mkdir(parents=True)
