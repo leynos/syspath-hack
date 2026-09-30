@@ -11,6 +11,7 @@ from pathlib import Path
 Pathish = Path | str
 ModeInput = typ.Union["SysPathMode", "_SysPathModes", typ.Iterable["SysPathMode"]]
 DEFAULT_SIGIL = "pyproject.toml"
+PACKAGE_NAME = "syspath_hack"
 
 
 class StrEnum(str, enum.Enum):
