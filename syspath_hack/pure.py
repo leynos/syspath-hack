@@ -326,7 +326,7 @@ def temp_syspath(
     paths: typ.Iterable[Pathish],
     *,
     mode: ModeInput = SysPathMode.APPEND | SysPathMode.PREPEND,
-) -> typ.Iterator[None]:
+) -> typ.Generator[None]:
     """Temporarily mutate sys.path and restore it afterwards."""
     baseline = list(sys.path)
     resolved_paths = _dedupe_resolved_paths(paths)
