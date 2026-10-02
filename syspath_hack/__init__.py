@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .pure import (
     DEFAULT_SIGIL,
+    PACKAGE_NAME,
     ProjectRootNotFoundError,
     SysPathMode,
     add_project_root,
@@ -19,10 +20,9 @@ from .pure import (
     temp_syspath,
 )
 
-PACKAGE_NAME = "syspath_hack"
-
 __all__ = [
     "DEFAULT_SIGIL",
+    "PACKAGE_NAME",
     "ProjectRootNotFoundError",
     "SysPathMode",
     "add_project_root",

@@ -11,6 +11,7 @@ from pathlib import Path
 Pathish = Path | str
 ModeInput = typ.Union["SysPathMode", "_SysPathModes", typ.Iterable["SysPathMode"]]
 DEFAULT_SIGIL = "pyproject.toml"
+PACKAGE_NAME = "syspath_hack"
 
 
 class StrEnum(str, enum.Enum):
@@ -325,7 +326,7 @@ def temp_syspath(
     paths: typ.Iterable[Pathish],
     *,
     mode: ModeInput = SysPathMode.APPEND | SysPathMode.PREPEND,
-) -> typ.Iterator[None]:
+) -> typ.Generator[None, None, None]:
     """Temporarily mutate sys.path and restore it afterwards."""
     baseline = list(sys.path)
     resolved_paths = _dedupe_resolved_paths(paths)
