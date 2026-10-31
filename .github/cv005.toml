@@ -1,0 +1,5 @@
+repository = "leynos/syspath-hack"
+
+# What the ratchet baseline measures: the package, not its tests.
+[selection]
+python-source = "./syspath_hack"
