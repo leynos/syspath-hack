@@ -53,6 +53,7 @@ class _SysPathModes(typ.Iterable[SysPathMode]):
     """Ordered, deduplicated collection of sys.path mutation modes."""
 
     def __init__(self, *modes: SysPathMode) -> None:
+        """Keep each mode once, in first-seen order; reject anything but modes."""
         unique: list[SysPathMode] = []
 
         for mode in modes:
@@ -66,12 +67,15 @@ class _SysPathModes(typ.Iterable[SysPathMode]):
         self._modes = tuple(unique)
 
     def __iter__(self) -> typ.Iterator[SysPathMode]:
+        """Iterate the modes in the order they were first given."""
         return iter(self._modes)
 
     def __contains__(self, item: object) -> bool:  # pragma: no cover - trivial
+        """Report whether `item` is one of the collected modes."""
         return item in self._modes
 
     def __len__(self) -> int:  # pragma: no cover - trivial
+        """Return the number of distinct modes."""
         return len(self._modes)
 
     def __or__(self, other: ModeInput) -> _SysPathModes:
