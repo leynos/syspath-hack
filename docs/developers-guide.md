@@ -2,6 +2,16 @@
 
 This guide records the repository's build and CI arrangements for contributors.
 
+## Docstring coverage
+
+`make lint` first runs `make interrogate`, which needs `uv` and fails on any
+Python definition under `syspath_hack`, `tests` and `scripts` without a
+docstring. It also fails on any `MISSED` row, because interrogate rounds its
+percentage to one decimal and so passes a lone gap. `scripts/uv_gate.py` is the
+vendored shared-actions helper; it is not edited here, and it ships with
+complete docstrings. Add a new Python directory to `INTERROGATE_TARGETS`;
+`tests/test_interrogate_gate.py` asserts the wiring.
+
 ## CodeScene coverage publication
 
 Main owns CodeScene (CV-005). Nothing a pull request can start talks to
